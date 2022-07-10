@@ -32,6 +32,7 @@ contract PayItForwardDepositor {
         giveToken = _give;
         receiveToken = _receive;
         giveToken.give(msg.sender, msg.value);
+        lastDoner = msg.sender;
     }
 
     /**
