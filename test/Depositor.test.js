@@ -6,6 +6,7 @@ let receiveToken;
 let accounts;
 
 const initialDonation = 0.001; //Test fails with larger numbers Investigate
+const transferVal = 0.004;
 
 beforeEach(async () => {
     accounts = await ethers.getSigners();
@@ -37,3 +38,28 @@ describe("Deployment", function () {
         expect(await giveToken.balanceOf(accounts[0].address)).to.equal(initialDonation*10**18);
     });
   });
+
+describe("Interaction", function () {
+    it("Should reward new Doner Correctly", async function () {
+        const startBalance = await hre.ethers.provider.getBalance(accounts[1].address);
+        const txn = await depositor.connect(accounts[1]).payItForward({value: hre.ethers.utils.parseEther('{0}'.replace('{0}', transferVal))});
+        await txn.wait();
+
+        
+        const deltaBal = (initialDonation-transferVal)*10**18;
+        const deltaActual = await hre.ethers.provider.getBalance(accounts[1].address) - startBalance;
+        
+        expect(deltaBal).to.approximately(deltaActual, 1*10**15); //Assumes 1E15 is gas impact
+
+        expect(await hre.ethers.provider.getBalance(depositor.address)).to.equal(transferVal*10**18);
+
+    });
+
+    it("Should reward new Doner with PIFGive and PIFReceive", async function () {
+        const txn = await depositor.connect(accounts[1]).payItForward({value: hre.ethers.utils.parseEther('{0}'.replace('{0}', transferVal))});
+        await txn.wait();
+
+        expect(await giveToken.balanceOf(accounts[1].address)).to.equal(transferVal*10**18);
+        expect(await receiveToken.balanceOf(accounts[1].address)).to.equal(initialDonation*10**18);
+    });
+});
